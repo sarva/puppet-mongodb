@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ns=$1
+mongorouter=`cat /etc/mongorouter.conf | tr "\n" "," | sed -e 's/.$//g'`
+
+echo "db.printShardingStatus()" | mongo $mongorouter/admin --quiet | grep "$ns chunks:"

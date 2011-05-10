@@ -1,0 +1,57 @@
+= MongoDB Sharding + Replica-sets Puppet Module =
+
+== Global Variables ==
+
+- Set to true to install the latest unstable binaries
+$mongodb_unstable = false
+
+- The config server port
+$mongodb_configport = 20000
+
+- The base shard-port. The actual port will be dependent on one of
+- 1) replica-set names that inclues a number, ex: set1, set2, set3
+- would become ports 10001, 10002, and 10003
+- 2) the last octect of the ip-address, ex: 192.168.0.11 would
+- set the shard port to 10011
+$mongodb_shardport = 10000
+
+- Prefix to all the mongodb dbpaths. For instance set to /data would
+- create /data/config, /data/set1, /data/set2 etc...
+$mongodb_prefix = "/var/lib/mongodb"
+
+- Automatically setup simple sharding on databases, can be a db name
+- or an array of db names
+$mongodb_sharddb = ""
+
+- Automatically setup simple sharding on collections, must be a hash
+- with each key being the namespace (including DB), and the value being
+- the sharding key for the collection
+$mongodb_shards = {}
+
+== Usage ==
+
+include mongodb::config
+include mongodb::router
+mongodb::shard{["set1", "set2", "set3"]: replica => true }
+
+If both a config server and router reside on the same machine, the config include should
+happen before/in-front of the router include
+
+Sharding can be customized with like:
+
+mongodb::shard{ "set1": replica => true, priority => 2 }
+
+Or for off-site backup-replicas:
+
+mongodb::shard{ "set1": replica => true, priority => 0 }
+
+Connection strings for applications can be built from the contents of /etc/mongorouter.conf
+file which will exist on all shards, or can be including manually with:
+
+collectfile{ "/etc/mongorouter.conf": }
+
+== Requirements ==
+
+* Puppet storeconfig=true
+* Ubuntu (with up-start)
+* global Exec{ path => "/bin:/usr/bin:/sbin:/usr/sbin" }

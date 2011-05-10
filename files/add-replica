@@ -1,0 +1,59 @@
+#!/bin/bash
+
+replicaSet=$1
+port=$2
+fqdn=`dnsdomainname -f`
+connect=`cat /etc/mongoreplicas.conf | grep "^$replicaSet " | awk '{print $2}'`
+
+for host in $connect
+do
+  if echo 'rs.isMaster();' | mongo $host --quiet | grep '"ismaster" : true' >/dev/null
+  then
+    log=`echo "rs.add('$fqdn:$port')" | mongo $host --quiet`
+
+    if ! echo "$log" | grep '"ok" : 1' >/dev/null
+    then
+      echo "Failed to add SECONDARY: $log"
+      exit 1
+    fi
+
+    # wait till registered as a SECONDARY before exiting
+    ((until=`date +%s`+30))
+    cmd="status=rs.status(); for(var i=0; memb=status['members'][i]; i++) if (memb['name'] == '$fqdn:$port') print(memb['state']);"
+    while true
+    do
+      state=`echo "$cmd" | mongo $fqdn:$port --quiet | tail -n +2 | head -n 1`
+      if [ "$state" == "2" ]
+      then
+        exit 0
+      elif [ `date +%s` -gt $until ]
+      then
+        echo "Failed to reach SECONDARY State after 30 seconds: $state"
+        exit 1
+      else
+        sleep 1
+      fi
+    done
+  fi
+done
+
+if echo "rs.initiate({ _id: '$replicaSet', members: [ {_id: 0, host: '$fqdn:$port'} ] })" | mongo $fqdn:$port --quiet | grep '"ok" : 1' >/dev/null
+then
+  # wait for the replica-set to initiate
+  ((until=`date +%s`+30))
+  while true
+  do
+    if echo "rs.isMaster()" | mongo $fqdn:$port --quiet | grep '"ismaster" : true' >/dev/null
+    then
+      exit 0
+    elif [ `date +%s` -gt $until ]
+    then
+      echo "Failed to become PRIMARY within 30 seconds: `echo "rs.isMaster()" | mongo $fqdn:$port --quiet`"
+      exit 1
+    else
+      sleep 1
+    fi
+  done
+fi
+
+exit 1

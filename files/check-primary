@@ -1,0 +1,76 @@
+#!/bin/bash
+
+replicaSet=$1
+port=$2
+fqdn=`dnsdomainname -f`
+
+#
+# primaries for replica-sets are picked here in an attempt to set one primary per host that can potentially have more than one shard
+#
+# first check if this host is a primary to another replica-set. if so, this host should not have a second primary
+for host in $(cat /etc/mongoreplicas.conf | grep " $fqdn:" | grep -v "^$replicaSet " | awk '{print $2}')
+do
+  if echo 'rs.isMaster();' | mongo $host --quiet | grep '"ismaster" : true' >/dev/null
+  then
+    exit 0
+  fi
+done
+
+# next mark which node is the primary for the replica-set so we can determine if it should be force-elected
+# to this node or not
+slaves=()
+for host in $(cat /etc/mongoreplicas.conf | grep "^$replicaSet " | grep -v " $fqdn:$port" | awk '{print $2}')
+do
+#  if echo 'rs.isMaster();' | mongo $host --quiet | grep '"ismaster" : true' >/dev/null
+  if echo 'rs.isMaster();' | mongo $host | grep '"ismaster" : true'
+  then
+    primary=$host
+
+    # if this is the only primary on the remote node, then there is no need to hold an election
+    found=false
+    phost=$(echo $primary | awk -F: '{print $1}')
+
+    for chost in $(cat /etc/mongoreplicas.conf | grep "$phost:" | grep -v "^$replicaSet " | awk '{print $2}')
+    do
+      if echo 'rs.isMaster();' | mongo $chost --quiet | grep '"ismaster" : true' >/dev/null
+      then
+        found=true
+        break
+      fi
+    done
+
+    if ! $found
+    then
+      exit 0
+    fi
+  else
+    slaves=(${slaves[@]} $host)
+  fi
+done
+
+# forcing an election to make this node the primary for this replica-set
+# do freezing first
+for host in ${slaves[@]}
+do
+  echo 'rs.freeze(120)' | mongo $host --quiet | grep '"ok" : 1'
+done
+
+# step the primary down
+if [ ! -z "$primary" ]
+then
+  echo 'rs.stepDown(120)' | mongo $primary --quiet | grep '"ok" : 1'
+fi
+
+# wait 30 seconds for the election to happen and this host to become primary
+((until=`date +%s`+30))
+while true
+do
+  if echo 'rs.isMaster();' | mongo $fqdn:$port --quiet | grep '"ismaster" : true' >/dev/null
+  then
+    exit 0
+  elif [ `date +%s` -gt $until ]
+  then
+    echo "Failed to become PRIMARY after 30 seconds"
+    exit 1
+  fi
+done

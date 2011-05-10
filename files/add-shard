@@ -1,0 +1,15 @@
+#!/bin/bash
+
+port=$1
+replicaSet=$2
+fqdn=`dnsdomainname -f`
+mongorouter=`cat /etc/mongorouter.conf | tr "\n" "," | sed -e 's/.$//g'`
+echo "ROUTER: $mongorouter"
+
+# set the shard host to be the replicaSet or this specific host only
+[ -z "$replicaSet" ] && host="$fqdn:$port" || host="$replicaSet/$fqdn:$port"
+
+log=`echo "db.runCommand({addshard: '$host'})" | mongo $mongorouter/admin --quiet`
+echo $log
+
+echo $log | grep '"ok" : 1' && exit 0 || exit 1

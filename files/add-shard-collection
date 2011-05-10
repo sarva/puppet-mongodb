@@ -1,0 +1,10 @@
+#!/bin/bash
+
+ns=$1
+key=$2
+mongorouter=`cat /etc/mongorouter.conf | tr "\n" "," | sed -e 's/.$//g'`
+
+log=`echo "db.runCommand({shardcollection: '$ns', key : $key})" | mongo $mongorouter/admin --quiet`
+echo $log
+
+echo "$log" | grep '"ok" : 1' && exit 0 || exit 1

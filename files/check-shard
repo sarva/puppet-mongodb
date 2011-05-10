@@ -1,0 +1,11 @@
+#!/bin/bash
+
+port=$1
+replicaSet=$2
+fqdn=`dnsdomainname -f`
+mongorouter=`cat /etc/mongorouter.conf | tr "\n" "," | sed -e 's/.$//g'`
+
+# set to search for the replicaSet, or the specific host
+[ -z "$replicaSet" ] && search="$fqdn:$port" || search='"_id" : "'$replicaSet'"'
+
+echo "db.runCommand({listshards: 1});" | mongo $mongorouter/admin --quiet | grep "$search"

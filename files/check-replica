@@ -1,0 +1,5 @@
+#!/bin/bash
+port=$1
+fqdn=`dnsdomainname -f`
+
+echo 'rs.conf();' | mongo $fqdn:$port --quiet | grep "$fqdn:$port" >/dev/null

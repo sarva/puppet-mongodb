@@ -1,0 +1,12 @@
+# Ubuntu upstart file at /etc/init/mongorouter.conf
+# Managed by Puppet, DO NOT TOUCH!
+
+start on runlevel [2345]
+stop on runlevel [06]
+
+script
+  ENABLE_MONGOROUTER="yes"
+  if [ -f /etc/default/mongorouter ]; then . /etc/default/mongorouter; fi
+  CONFIG_CONNECTIONS=`cat /etc/mongoconfig.conf | tr "\n" "," | sed -e 's/.$//g'`
+  if [ "x$ENABLE_MONGOROUTER" = "xyes" ]; then exec start-stop-daemon --start --quiet --chuid mongodb --pidfile /var/run/mongorouter.pid --exec  /usr/bin/mongos -- --configdb $CONFIG_CONNECTIONS --port <%= port %> --logpath /var/log/mongodb/mongos.log; fi
+end script
