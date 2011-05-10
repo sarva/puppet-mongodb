@@ -8,5 +8,5 @@ stop on runlevel [06]
 script
   ENABLE_MONGOSHARD="yes"
   if [ -f /etc/default/mongoshard ]; then . /etc/default/mongoshard; fi
-  if [ "x$ENABLE_MONGOSHARD" = "xyes" ]; then exec start-stop-daemon --start --quiet --chuid mongodb --pidfile /var/run/mongoshard-<%= name %> --exec  /usr/bin/mongod -- --shardsvr --dbpath <%= prefix %>/<%= name %> --port <%= port %> --replSet <%= name %> --logpath /var/log/mongodb/mongoshard-<%= name %>.log --logappend --cpu; fi
+  if [ "x$ENABLE_MONGOSHARD" = "xyes" ]; then exec start-stop-daemon --start --quiet --chuid mongodb --pidfile /var/run/mongoshard-<%= name %> --exec  /usr/bin/mongod -- --shardsvr --dbpath <%= prefix %>/<%= name %> --port <%= port %> --replSet <%= name %> --logpath /var/log/mongodb/mongoshard-<%= name %>.log --logappend --cpu --rest; fi
 end script
