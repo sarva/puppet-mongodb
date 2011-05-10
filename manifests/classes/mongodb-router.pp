@@ -6,6 +6,14 @@ class mongodb::router inherits mongodb::disable {
     content => template('mongodb/mongorouter.conf.erb')
   }
 
+  # stopping is required to use an updated /etc/init/mongoshard.conf file
+  exec { "stop mongorouter":
+    command => "stop mongorouter",
+    refreshonly => true,
+    subscribe => File["/etc/init/mongorouter.conf"],
+    before => Service["mongorouter"]
+  }
+
   # setup config server connection
   collectfile{ "/etc/mongoconfig.conf": }
   #Exec<<| tag=="mongodb-config" |>> {

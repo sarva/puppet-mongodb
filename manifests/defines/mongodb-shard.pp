@@ -71,6 +71,14 @@ define mongodb::shard($replica=false, $priority=1) {
   # make sure the router connection settings are setup
   include mongodb::router::conf
 
+  # stopping is required to use an updated /etc/init/mongoshard.conf file
+  exec { "stop mongoshard-$name":
+    command => "stop mongoshard-${name}",
+    refreshonly => true,
+    subscribe => File["/etc/init/mongoshard-${name}.conf"],
+    before => Service["mongoshard-$name"]
+  }
+
   service { "mongoshard-$name":
     ensure => running,
     provider => base,

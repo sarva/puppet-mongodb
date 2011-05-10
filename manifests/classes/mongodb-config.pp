@@ -14,6 +14,14 @@ class mongodb::config inherits mongodb::disable {
     content => template('mongodb/mongoconfig.conf.erb')
   }
 
+  # stopping is required to use an updated /etc/init/mongoconfig.conf file
+  exec { "stop mongoconfig":
+    command => "stop mongoconfig",
+    refreshonly => true,
+    subscribe => File["/etc/init/mongoconfig.conf"],
+    before => Service["mongoconfig"]
+  }
+
   service { "mongoconfig":
     ensure => running,
     provider => base, # upstream jobs not supported in puppet yet
