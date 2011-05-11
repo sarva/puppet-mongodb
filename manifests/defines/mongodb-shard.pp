@@ -114,54 +114,7 @@ define mongodb::shard($replica=false, $priority=1) {
 
   # setup the replica set
   if $replica {
-    # setup all hosts to save all replica connection strings
-    exportline{"$name $fqdn:$port": file => "/etc/mongoreplicas.conf" }
-    if !defined(Collectfile["/etc/mongoreplicas.conf"]) {
-      collectfile{"/etc/mongoreplicas.conf": }
-    }
-    #if !defined(Exec["clear mongoreplicas.conf"]) {
-    #  exec { "clear mongoreplicas.conf":
-    #    command => "echo '' |> /etc/mongoreplicas.conf",
-    #    refreshonly => true
-    #  }
-    #}
-    #@@exec { "check mongoreplicas.conf $name/$fqdn:$port":
-    #  command => "/bin/true",
-    #  unless => "grep '$name $fqdn:$port' /etc/mongoreplicas.conf",
-    #  tag => "mongodb-replicas",
-    #  notify => Exec["clear mongoreplicas.conf"]
-    #}
-    #@@exec { "replica-set $name/$fqdn":
-    #  command => "echo '$name $fqdn:$port' >> /etc/mongoreplicas.conf",
-    #  refreshonly => true,
-    #  subscribe => Exec["clear mongoreplicas.conf"],
-    #  tag => "mongodb-replicas"
-    #}
-
-    #Exec<<| tag=="mongodb-replicas" |>> {
-    #  before => Exec["add-replica-$name"]
-    #}
-
-    exec { "add-replica-$name":
-      command => "/usr/local/bin/add-replica $name $port",
-      require => [Service["mongoshard-${name}"], File["/usr/local/bin/add-replica"], File["/usr/local/bin/check-replica"], File["/etc/mongoreplicas.conf"]],
-      unless => "/usr/local/bin/check-replica $port",
-      logoutput => on_failure
-    }
-
-    # replica must be set first
-    Exec["add-replica-$name"] -> Exec["add-shard-$name"]
-
-    # check that this replica-set has a sane primary based on this setup that can have multiple
-    # replica-sets on a single node
-    if $priority {
-      exec {"check-primary-$name":
-        command => "/usr/local/bin/check-primary $name $port",
-        unless => "echo 'rs.isMaster();' | mongo $fqdn:$port --quiet | grep '\"ismaster\" : true'",
-        require => [Exec["add-replica-$name"], File["/usr/local/bin/check-primary"]],
-        logoutput => on_failure
-      }
-    }
+    mongodbb:replica{ $name: priority => $priority }
   }
 }
 
