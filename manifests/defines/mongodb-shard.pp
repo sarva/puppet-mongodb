@@ -74,6 +74,7 @@ define mongodb::shard($replica=false, $priority=1) {
   # stopping is required to use an updated /etc/init/mongoshard.conf file
   exec { "stop mongoshard-$name":
     command => "stop mongoshard-${name}",
+    onlyif => "status mongoshard-${name} | grep 'start/running'",
     refreshonly => true,
     subscribe => File["/etc/init/mongoshard-${name}.conf"],
     before => Service["mongoshard-$name"]

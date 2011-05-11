@@ -9,6 +9,7 @@ class mongodb::router inherits mongodb::disable {
   # stopping is required to use an updated /etc/init/mongoshard.conf file
   exec { "stop mongorouter":
     command => "stop mongorouter",
+    onlyif => "status mongorouter | grep 'start/running'",
     refreshonly => true,
     subscribe => File["/etc/init/mongorouter.conf"],
     before => Service["mongorouter"]

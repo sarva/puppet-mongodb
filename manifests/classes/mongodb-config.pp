@@ -17,6 +17,7 @@ class mongodb::config inherits mongodb::disable {
   # stopping is required to use an updated /etc/init/mongoconfig.conf file
   exec { "stop mongoconfig":
     command => "stop mongoconfig",
+    onlyif => "status mongoconfig | grep 'start/running'",
     refreshonly => true,
     subscribe => File["/etc/init/mongoconfig.conf"],
     before => Service["mongoconfig"]
