@@ -114,7 +114,7 @@ define mongodb::shard($replica=false, $priority=1) {
 
   # setup the replica set
   if $replica {
-    mongodbb:replica{ $name: priority => $priority }
+    mongodb::replica{ $name: priority => $priority }
   }
 }
 
